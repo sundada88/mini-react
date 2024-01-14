@@ -4,17 +4,17 @@ function createTextNode (text) {
         type: 'TEXT_ELEMENT',
         props: {
             nodeValue: text,
-            childern: []
+            children: []
         }
     }
 }
 
-function createElement(type, props, ...childern) {
+function createElement(type, props, ...children) {
     return {
         type,
         props: {
             ...props,
-            childern: childern.map(child => typeof child === 'string' ? createTextNode(child) : child)
+            children: children.map(child => typeof child === 'string' ? createTextNode(child) : child)
         }
     }
 }
@@ -23,9 +23,11 @@ function render(el, container) {
     nextWorkOfUnit = {
         dom: container,
         props: {
-            childern: [el]
+            children: [el]
         }
     }
+    // console.log(el)
+    // container.append(dom)
 }
 
 const React = {
@@ -39,7 +41,7 @@ function createDom(type) {
     return type !== 'TEXT_ELEMENT' ? document.createElement(type) : document.createTextNode('')
 }
 
-function handleProps (dom, props) {
+function updateProps(dom, props) {
     Object.keys(props).forEach(key => {
         if (key !== 'children') {
             dom[key] = props[key]
@@ -47,52 +49,52 @@ function handleProps (dom, props) {
     })
 }
 
-function performanceNextWork(fiber) {
-    // 1. 根据work 创建dom
-    if (!fiber.dom) {
-        const dom = (fiber.dom = createDom(fiber.type))
-        fiber.parent.dom.append(dom)
-        // 2. 设置 props 
-        handleProps(dom, fiber.props)
+function performanceNextWork(work) {
+    if (!work.dom) {
+        // 创建dom
+        const dom = (work.dom = createDom(work.type))
+        work.parent.dom.append(dom)
+        // 更新props
+        updateProps(dom, work.props)
     }
-
-    // 3. 处理 孩子
-    const children = fiber.props.childern
+    // 处理children
+    const children = work.props.children
     let prevChild = null
     children.forEach((child, index) => {
-        const newFiber = {
+        const newChild = {
             type: child.type,
             props: child.props,
-            child: null,
-            sibling: null,
             parent: null,
+            sibling: null,
             dom: null
         }
         if (index === 0) {
-            fiber.child = newFiber
-            newFiber.parent = fiber
+            work.child = newChild
+            newChild.parent = work
         } else {
-            prevChild.sibling = newFiber
+            prevChild.sibling = newChild
         }
-        prevChild = newFiber
+        prevChild = newChild
     })
-    // 4. 返回下一个work
-    if (fiber.child) return fiber.child
-    if (fiber.sibling) return fiber.sibling
-    return fiber.parent?.sibling
+    // 返回下一个
+    if (work.child) return work.child
+    if (work.sibling) return work.sibling
+    return work.parent?.sibling
 }
 
 function workLoop(deadline) {
-  let sholdYield = false;
-  while (!sholdYield && nextWorkOfUnit) {
-      // run task
-      nextWorkOfUnit = performanceNextWork(nextWorkOfUnit)
-      sholdYield = deadline.timeRemaining() < 1;
-  }
+    // 任务锁
+    let sholdYield = false;
+    while (!sholdYield && nextWorkOfUnit) {
+        nextWorkOfUnit = performanceNextWork(nextWorkOfUnit)
+        // console.log(`run task ${taskId}`)
+        sholdYield = deadline.timeRemaining() < 1;
+    }
   
-  window.requestIdleCallback(workLoop);
-}
+    window.requestIdleCallback(workLoop);
+  }
 
 requestIdleCallback(workLoop)
+
 
 export default React
