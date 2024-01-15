@@ -14,7 +14,10 @@ function createElement(type, props, ...children) {
         type,
         props: {
             ...props,
-            children: children.map(child => typeof child === 'string' ? createTextNode(child) : child)
+            children: children.map(child => {
+                const isTextNode = typeof child === 'string' || typeof child === 'number'
+               return isTextNode ? createTextNode(child) : child
+            })
         }
     }
 }
@@ -35,6 +38,7 @@ function render(el, container) {
 let nextWorkOfUnit = null
 
 function createDom(type) {
+    console.log(type)
     return type !== 'TEXT_ELEMENT' ? document.createElement(type) : document.createTextNode('')
 }
 
@@ -46,8 +50,8 @@ function updateProps(dom, props) {
     })
 }
 
-function initChidren (fiber) {
-    const children = fiber.props.children
+function initChidren (fiber, children) {
+    // const children = fiber.props.children
     let prevChild = null
     children.forEach((child, index) => {
         const newChild = {
@@ -67,19 +71,27 @@ function initChidren (fiber) {
 }
 
 function performanceNextWork(fiber) {
-    if (!fiber.dom) {
-        // 创建dom
-        const dom = (fiber.dom = createDom(fiber.type))
-        // fiber.parent.dom.append(dom)
-        // 更新props
-        updateProps(dom, fiber.props)
+    const isFunctionComponenet = typeof fiber.type === 'function'
+    if (!isFunctionComponenet) {
+        if (!fiber.dom) {
+            // 创建dom
+            const dom = (fiber.dom = createDom(fiber.type))
+            // fiber.parent.dom.append(dom)
+            // 更新props
+            updateProps(dom, fiber.props)
+        }
     }
+
+    const children = isFunctionComponenet ? [fiber.type(fiber.props)] : fiber.props.children
     // 处理children
-    initChidren(fiber)
+    initChidren(fiber, children)
     // 返回下一个
     if (fiber.child) return fiber.child
-    if (fiber.sibling) return fiber.sibling
-    return fiber.parent?.sibling
+    let nextFiber = fiber
+    while (nextFiber) {
+        if (nextFiber.sibling) return nextFiber.sibling
+        nextFiber = nextFiber.parent
+    }
 }
 
 let root = null
@@ -91,7 +103,13 @@ function commitRoot () {
 
 function commitWork(fiber) {
     if (!fiber) return
-    fiber.parent.dom.append(fiber.dom)
+    let fiberParent = fiber.parent
+    while (!fiberParent.dom) {
+        fiberParent = fiberParent.parent
+    }
+    if (fiber.dom) {
+        fiberParent.dom.append(fiber.dom)
+    }
     commitWork(fiber.child)
     commitWork(fiber.sibling)
 }
