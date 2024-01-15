@@ -30,10 +30,6 @@ function render(el, container) {
     // container.append(dom)
 }
 
-const React = {
-    createElement,
-    render
-}
 
 let nextWorkOfUnit = null
 
@@ -99,5 +95,10 @@ function workLoop(deadline) {
 
 requestIdleCallback(workLoop)
 
+
+const React = {
+    createElement,
+    render
+}
 
 export default React
