@@ -49,16 +49,8 @@ function updateProps(dom, props) {
     })
 }
 
-function performanceNextWork(work) {
-    if (!work.dom) {
-        // 创建dom
-        const dom = (work.dom = createDom(work.type))
-        work.parent.dom.append(dom)
-        // 更新props
-        updateProps(dom, work.props)
-    }
-    // 处理children
-    const children = work.props.children
+function initChidren (fiber) {
+    const children = fiber.props.children
     let prevChild = null
     children.forEach((child, index) => {
         const newChild = {
@@ -69,17 +61,29 @@ function performanceNextWork(work) {
             dom: null
         }
         if (index === 0) {
-            work.child = newChild
-            newChild.parent = work
+            fiber.child = newChild
+            newChild.parent = fiber
         } else {
             prevChild.sibling = newChild
         }
         prevChild = newChild
     })
+}
+
+function performanceNextWork(fiber) {
+    if (!fiber.dom) {
+        // 创建dom
+        const dom = (fiber.dom = createDom(fiber.type))
+        fiber.parent.dom.append(dom)
+        // 更新props
+        updateProps(dom, fiber.props)
+    }
+    // 处理children
+    initChidren(fiber)
     // 返回下一个
-    if (work.child) return work.child
-    if (work.sibling) return work.sibling
-    return work.parent?.sibling
+    if (fiber.child) return fiber.child
+    if (fiber.sibling) return fiber.sibling
+    return fiber.parent?.sibling
 }
 
 function workLoop(deadline) {
