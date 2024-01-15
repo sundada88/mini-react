@@ -56,13 +56,12 @@ function initChidren (fiber) {
         const newChild = {
             type: child.type,
             props: child.props,
-            parent: null,
+            parent: fiber,
             sibling: null,
             dom: null
         }
         if (index === 0) {
             fiber.child = newChild
-            newChild.parent = fiber
         } else {
             prevChild.sibling = newChild
         }
