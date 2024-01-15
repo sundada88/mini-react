@@ -26,6 +26,7 @@ function render(el, container) {
             children: [el]
         }
     }
+    root = nextWorkOfUnit
     // console.log(el)
     // container.append(dom)
 }
@@ -69,7 +70,7 @@ function performanceNextWork(fiber) {
     if (!fiber.dom) {
         // 创建dom
         const dom = (fiber.dom = createDom(fiber.type))
-        fiber.parent.dom.append(dom)
+        // fiber.parent.dom.append(dom)
         // 更新props
         updateProps(dom, fiber.props)
     }
@@ -81,6 +82,20 @@ function performanceNextWork(fiber) {
     return fiber.parent?.sibling
 }
 
+let root = null
+
+function commitRoot () {
+    commitWork(root.child)
+    root = null
+}
+
+function commitWork(fiber) {
+    if (!fiber) return
+    fiber.parent.dom.append(fiber.dom)
+    commitWork(fiber.child)
+    commitWork(fiber.sibling)
+}
+
 function workLoop(deadline) {
     // 任务锁
     let sholdYield = false;
@@ -88,6 +103,9 @@ function workLoop(deadline) {
         nextWorkOfUnit = performanceNextWork(nextWorkOfUnit)
         // console.log(`run task ${taskId}`)
         sholdYield = deadline.timeRemaining() < 1;
+    }
+    if (!nextWorkOfUnit && root) {
+        commitRoot()
     }
   
     window.requestIdleCallback(workLoop);
