@@ -70,21 +70,33 @@ function initChidren (fiber, children) {
     })
 }
 
-function performanceNextWork(fiber) {
-    const isFunctionComponenet = typeof fiber.type === 'function'
-    if (!isFunctionComponenet) {
-        if (!fiber.dom) {
-            // 创建dom
-            const dom = (fiber.dom = createDom(fiber.type))
-            // fiber.parent.dom.append(dom)
-            // 更新props
-            updateProps(dom, fiber.props)
-        }
-    }
-
-    const children = isFunctionComponenet ? [fiber.type(fiber.props)] : fiber.props.children
+function updateFunctionComponent(fiber) {
+    const children =  [fiber.type(fiber.props)]
     // 处理children
     initChidren(fiber, children)
+}
+
+function updateHostComponent(fiber) {
+    if (!fiber.dom) {
+        // 创建dom
+        const dom = (fiber.dom = createDom(fiber.type))
+        // fiber.parent.dom.append(dom)
+        // 更新props
+        updateProps(dom, fiber.props)
+    }
+
+    const children =  fiber.props.children
+    // 处理children
+    initChidren(fiber, children)
+}
+
+function performanceNextWork(fiber) {
+    const isFunctionComponenet = typeof fiber.type === 'function'
+    if (isFunctionComponenet) {
+        updateFunctionComponent(fiber)
+    } else {
+        updateHostComponent(fiber)
+    }
     // 返回下一个
     if (fiber.child) return fiber.child
     let nextFiber = fiber
